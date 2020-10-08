@@ -334,45 +334,6 @@ def getLowResponseQ(sourceDF):
 
     return low_allResponse_melt
 
-@st.cache
-def makehistboxcombo(data, xlabel, ylabel, quant, quantLab):
-    '''
-    makes combo histogram and boxplot for data with labled quantile information
-    :param data: series data
-    :param xlabel: desired "x-label" as string
-    :param ylabel: desired "y-label" as string
-    :param quant: desired quantile cut-off as number
-    :param quantLab: desired "quantile label" as string; ex: "First Quantile"
-    :return: Labeled combo histogram boxplot graph
-    '''
-    sns.set(style="ticks")
-
-    x = data
-
-    f, (ax_box, ax_hist) = plt.subplots(2, sharex=True,
-                                        gridspec_kw={"height_ratios": (.15, .85)}, )
-
-    # ax = sns.boxplot(x, ax=ax_box).set(xlabel = None, title = "High Scores Across the Organization")
-    ax = sns.boxplot(x, ax=ax_box).set(xlabel=None)
-    ax = sns.distplot(x, ax=ax_hist, kde=False)
-
-    ax_box.set(yticks=[])
-    sns.despine(ax=ax_hist)
-    sns.despine(ax=ax_box, left=True)
-
-    # ax.set_title("High Scores Across the Organization", fontsize = 20)
-    ax.set_xlabel(xlabel, fontsize=18)
-    ax.set_ylabel(ylabel, fontsize=18)
-    ax.tick_params(axis='x', labelsize=15)
-    ax.tick_params(axis='y', labelsize=15)
-
-    # plot median and quantile lines
-    ax.axvline(x.quantile(quant), color='black', linestyle='dashed', linewidth=1)
-
-    # add label for median and quantile lines
-    min_ylim, max_ylim = plt.ylim()
-    ax.text(x.quantile(quant) * 1, max_ylim * 1.01, quantLab + ': {:.2f}%'.format(x.quantile(quant)))
-
 
 @st.cache
 def getHigh_lowScoreCount_locdep(series):
@@ -621,13 +582,6 @@ if st.checkbox('Calculate Recommendations for Worse Performing Departments:'):
 
     # get series with all low scores by Location/Department
     lowscore_locdep = low_allResponse_melt.groupby("Location - Department")["Value"].count()
-
-    # make labeled histogram/boxplot combo for Location/Department with high number low scores
-    lowScore_comboHistBox = makehistboxcombo(lowscore_locdep,
-                                             "Location/Department Low Score Count",
-                                             "Frequency",
-                                             .75,
-                                             "Third Quantile")
 
     # get array with Location/Department with low score count greater than 3rd quantile
     highcount_locdep_array = getHigh_lowScoreCount_locdep(lowscore_locdep)
