@@ -1,4 +1,3 @@
 # packages for ActivatedInsights_Streamlit.py script
 
-#openpyxl
-xlrd
+python3-xlrd
