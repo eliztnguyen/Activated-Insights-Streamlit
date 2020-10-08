@@ -29,12 +29,12 @@ def readinFile(filepath, extension):
     '''
 
     tempdf = pd.DataFrame()
-    if datatype == "dataframe":
-        if extension == "csv":
-            tempdf = pd.read_csv(filepath)
-        elif extension == "xlsx" or extension == "xls":
-            tempdf = pd.read_excel(filepath)
-        return tempdf
+
+    if extension == "csv":
+        tempdf = pd.read_csv(filepath)
+    elif extension == "xlsx" or extension == "xls":
+        tempdf = pd.read_excel(filepath)
+    return tempdf
 
 
 @st.cache
@@ -42,7 +42,6 @@ def setupResults(results):
     '''
     set up results for processing in Accurate Insight project
     :param results: results dataframe for one_organization-one_survey
-    :param mycolnames: colnames to be associated with dataframe
     :return: results dataframe with column names, new columns, and only if "submitted"==True
     '''
 
@@ -516,7 +515,7 @@ def download_button(object_to_download, download_filename, button_text, pickle_i
 
 # define relative file path
 filepath1 = "data/statement_key.csv"  # file for statkey only
-filepath2 = "data/results_colnames.csv"  # file for colnames only
+#filepath2 = "data/results_colnames.csv"  # file for colnames only
 
 
 # Web App Intro text
@@ -531,10 +530,9 @@ st.set_option('deprecation.showfileUploaderEncoding', False)
 
 # read in files
 statKey = readinFile(filepath1, "csv")
-mycolnames = readinFile(filepath2, "csv")
 
 # create a list of question columns as they appear in the data
-questions = mycolnames[5:65]
+questions = statKey["Question"].tolist()
 
 # create list of categories
 categories = getCategories(statKey)
