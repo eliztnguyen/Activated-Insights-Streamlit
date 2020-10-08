@@ -17,7 +17,7 @@ import re
 #@st.cache(hash_funcs={pandas.core.frame.DataFrame: my_hash_func})
 def readinresults(data):
     '''simpler readin function for excel file'''
-    df = pd.read_excel(data)
+    df = pd.read_excel(data, engine="openpyxl")
     return df
 
 @st.cache
@@ -33,7 +33,7 @@ def readinFile(filepath, extension):
     if extension == "csv":
         tempdf = pd.read_csv(filepath)
     elif extension == "xlsx" or extension == "xls":
-        tempdf = pd.read_excel(filepath)
+        tempdf = pd.read_excel(filepath, engine="openpyxl")
     return tempdf
 
 
