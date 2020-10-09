@@ -15,13 +15,13 @@ import re
 
 
 # functions
-#@st.cache(hash_funcs={pandas.core.frame.DataFrame: my_hash_func})
+#@st.cache
 def readinresults(data):
     '''simpler readin function for excel file'''
     df = pd.read_excel(data)
     return df
 
-@st.cache
+#@st.cache
 def readinFile(filepath, extension):
     '''function to read in file with the following options;
     :param filepath: written as "str";
@@ -38,7 +38,7 @@ def readinFile(filepath, extension):
     return tempdf
 
 
-@st.cache
+#@st.cache
 def setupResults(results):
     '''
     set up results for processing in Accurate Insight project
@@ -57,7 +57,7 @@ def setupResults(results):
     return results
 
 
-@st.cache
+#@st.cache
 def getDFqcolnames(results):
     '''
     gets column names for all questions in results DF
@@ -68,7 +68,7 @@ def getDFqcolnames(results):
     return list(results.columns[5:65])
 
 
-@st.cache
+#@st.cache
 def getCategories(statKey):
     '''
     gets list of all categories from statKey DF
@@ -85,7 +85,7 @@ def getCategories(statKey):
     return categories
 
 
-@st.cache
+#@st.cache
 def createStatDict(sourceDF, categories):
     '''
     create dictionary with question number and categories associated with question)
@@ -108,7 +108,7 @@ def createStatDict(sourceDF, categories):
     return tempDict
 
 
-@st.cache
+#@st.cache
 def createNewCatQDF(sourceDF, categories):
     '''
     create new dataframe for cataloguing question numbers by their category
@@ -133,7 +133,7 @@ def createNewCatQDF(sourceDF, categories):
     return newDF
 
 
-@st.cache
+#@st.cache
 def createCatbyQDict(sourceDF, categories):
     """
     function to create diciontary with (key = categories) and (values = all associated Q's)
@@ -163,7 +163,7 @@ def createCatbyQDict(sourceDF, categories):
     return tempDict
 
 
-@st.cache
+#@st.cache
 def getDepCat_unhappyCount(source_df, categories, questions, statbyCat_dict):
     '''
     create dataframe of low score counts by department
@@ -207,7 +207,7 @@ def getDepCat_unhappyCount(source_df, categories, questions, statbyCat_dict):
     return dep_catunhappyQ
 
 
-@st.cache
+#@st.cache
 def cleanCountDFforRecs(dataframe, categories):
     '''
     add necessary new columns to and restructure low score count DF
@@ -235,7 +235,7 @@ def cleanCountDFforRecs(dataframe, categories):
     return sorted_dataframe
 
 
-@st.cache
+#@st.cache
 def makerecs(dataframe):
     '''
     make dataframe of recommendations (3 cat per dep, 3 dep per loc)
@@ -260,7 +260,7 @@ def makerecs(dataframe):
     return clean_top9recs
 
 
-@st.cache
+#@st.cache
 def locRec_dict(dataDF, locColName):
     '''
     function to turn recommendation dataframe into dictionary by location;
@@ -285,7 +285,7 @@ def locRec_dict(dataDF, locColName):
 
     return temp_dict
 
-@st.cache
+#@st.cache
 def qResponseDF(results):
     ''''
     create dataframe with all question responses in one column
@@ -321,7 +321,7 @@ def qResponseDF(results):
 
     return allResponse_melt
 
-@st.cache
+#@st.cache
 def getLowResponseQ(sourceDF):
     '''
     subset dataframe with all Q responses to only include low scores
@@ -335,7 +335,7 @@ def getLowResponseQ(sourceDF):
     return low_allResponse_melt
 
 
-@st.cache
+#@st.cache
 def getHigh_lowScoreCount_locdep(series):
     '''
     get array with the Location-Department with the highest count of low scores
@@ -353,7 +353,7 @@ def getHigh_lowScoreCount_locdep(series):
     return highcount_locdep_names
 
 
-@st.cache
+#@st.cache
 def getCountResults_locdep(sourceDF, locdeplist):
     '''
     create new DF with only location-department of interest
@@ -366,7 +366,7 @@ def getCountResults_locdep(sourceDF, locdeplist):
 
     return subset
 
-@st.cache
+#@st.cache
 def createNaNQDict(sourceDF, categories):
     '''
     fuction to find questions associated with no categories
@@ -388,7 +388,7 @@ def createNaNQDict(sourceDF, categories):
     return tempDict
 
 
-@st.cache
+#@st.cache
 def download_button(object_to_download, download_filename, button_text, pickle_it=False):
     """
     Generates a link to download the given object_to_download.
