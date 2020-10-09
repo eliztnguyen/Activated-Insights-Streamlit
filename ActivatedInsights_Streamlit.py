@@ -246,9 +246,9 @@ def makerecs(dataframe):
     # only want top 3 rows of each group
     # THEREFORE
     # only want top 3 recommendations for each location-department; aka top 3 categories for each department of a given location
-    # only want top 9 recommendations for each location, aka 3 dept
+    # only want top 3 recommendations for each location, aka 1-3 dept
     top3recs_fordept = dataframe.groupby("Location - Department").head(3)
-    top9recs_forloc = top3recs_fordept.groupby("Location").head(9)
+    top9recs_forloc = top3recs_fordept.groupby("Location").head(3)
 
     # sort by location
     top9recs_byloc = top9recs_forloc.sort_values(by = ["Location", "Scores with Improvement Potential"],
