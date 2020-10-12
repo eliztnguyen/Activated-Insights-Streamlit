@@ -565,8 +565,7 @@ if st.checkbox('Show All Recommendations for Improvement:'):
 if st.checkbox('Calculate Recommendations for Worse Performing Departments:'):
 
     # Description
-    st.write('These departments have the highest number of low scores (top 25%) '
-             'for questions associated with the recommended improvement categories.')
+    st.write('These departments have the highest number of low scores (top 25%) across the organization.')
 
     # get dataframe of all question responses in one column
     allResponse_melt = qResponseDF(results_new)
