@@ -2,73 +2,15 @@
 import streamlit as st
 import pandas as pd
 from copy import copy
-import csv
-#import openpyxl
-#import seaborn as sns
-#import matplotlib.pyplot as plt
 import base64
-import os
 import json
 import pickle
 import uuid
 import re
 
 
-# functions
-#@st.cache
-def readinresults(data):
-    '''simpler readin function for excel file'''
-    df = pd.read_excel(data)
-    return df
+####### Functions that don't require results file
 
-#@st.cache
-def readinFile(filepath, extension):
-    '''function to read in file with the following options;
-    :param filepath: written as "str";
-    :param extension: "csv", "xlsx", "xls";
-    :return: data as dataframe
-    '''
-
-    tempdf = pd.DataFrame()
-
-    if extension == "csv":
-        tempdf = pd.read_csv(filepath)
-    elif extension == "xlsx" or extension == "xls":
-        tempdf = pd.read_excel(filepath)
-    return tempdf
-
-
-#@st.cache
-def setupResults(results):
-    '''
-    set up results for processing in Accurate Insight project
-    :param results: results dataframe for one_organization-one_survey
-    :return: results dataframe with column names, new columns, and only if "submitted"==True
-    '''
-
-    # subset data to only submitted surveys
-    results = results[results["submitted"] == True]
-    ### NOTE: these include submitted surveys that have ZEROS, which means NO ANSWER
-
-    # add new "Location - Department" column
-    locdepCol = results["Location Name"] + " - " + results["Department Name"]
-    results["Location - Department"] = locdepCol
-
-    return results
-
-
-#@st.cache
-def getDFqcolnames(results):
-    '''
-    gets column names for all questions in results DF
-    :param results: results dataframe
-    :return: list of column names
-    '''
-
-    return list(results.columns[5:65])
-
-
-#@st.cache
 def getCategories(statKey):
     '''
     gets list of all categories from statKey DF
@@ -85,7 +27,6 @@ def getCategories(statKey):
     return categories
 
 
-#@st.cache
 def createStatDict(sourceDF, categories):
     '''
     create dictionary with question number and categories associated with question)
@@ -97,7 +38,7 @@ def createStatDict(sourceDF, categories):
     tempKey = 1  # dictionary key
     for i in range(len(sourceDF)):  # define length of dataframe iterating over
         row = sourceDF.iloc[i]  # identify dataframe row of interest
-        tempList = [] # empty list to be dictionary value
+        tempList = []  # empty list to be dictionary value
         for cat in categories:  # categories in colnames
             for value in row[4:10]:  # category columns across row
                 if value == cat:
@@ -108,7 +49,6 @@ def createStatDict(sourceDF, categories):
     return tempDict
 
 
-#@st.cache
 def createNewCatQDF(sourceDF, categories):
     '''
     create new dataframe for cataloguing question numbers by their category
@@ -117,7 +57,7 @@ def createNewCatQDF(sourceDF, categories):
     :return: DF with columns = categories; index = question number
     '''
     newDF = pd.DataFrame(columns=categories,
-                             index=sourceDF["Stmt_survey_num"])
+                         index=sourceDF["Stmt_survey_num"])
 
     for i in range(len(sourceDF)):  # define length of dataframe iterating over
         row = sourceDF.iloc[i]  # identify dataframe row of interest
@@ -133,7 +73,6 @@ def createNewCatQDF(sourceDF, categories):
     return newDF
 
 
-#@st.cache
 def createCatbyQDict(sourceDF, categories):
     """
     function to create diciontary with (key = categories) and (values = all associated Q's)
@@ -163,10 +102,29 @@ def createCatbyQDict(sourceDF, categories):
     return tempDict
 
 
-#@st.cache
+###### Functions that require results file
+
+def setupResults(results):
+    '''
+    set up results for processing in Accurate Insight project
+    :param results: results dataframe for one_organization-one_survey
+    :return: results dataframe with new 'Location - Deparment' column, and only if "submitted"==True
+    '''
+
+    # subset data to only submitted surveys
+    results = results[results["submitted"] == True]
+    ### NOTE: these include submitted surveys that have ZEROS, which means NO ANSWER
+
+    # add new "Location - Department" column
+    locdepCol = results["Location Name"] + " - " + results["Department Name"]
+    results["Location - Department"] = locdepCol
+
+    return results
+
+
 def getDepCat_unhappyCount(source_df, categories, questions, statbyCat_dict):
     '''
-    create dataframe of low score counts by department
+    create dataframe of low score counts by department and category
     :param source_df: dataframe of results of interest
     :param categories: list of all categories of interest
     :param questions: list of all questions as labelled in the survey dataframe
@@ -182,6 +140,7 @@ def getDepCat_unhappyCount(source_df, categories, questions, statbyCat_dict):
 
     dep_pos = 0  # keeps track of where we are in new dataframe location-department
     person_row = source_df.index.values  # gives all row label for all rows associated with dataframe
+    # dep_allpplcount = []  # list to keep track of how many people are in each department
     for dept in depts:  # evaluate each location-department separately
         scorelist = [0] * 9  # keeps track of number of people with low scores per category
         for row in person_row:  # for each row aka person
@@ -207,12 +166,111 @@ def getDepCat_unhappyCount(source_df, categories, questions, statbyCat_dict):
     return dep_catunhappyQ
 
 
-#@st.cache
-def cleanCountDFforRecs(dataframe, categories):
+def getDepCat_unhappyCount_ppl(source_df, categories, questions, statbyCat_dict):
+    '''
+    get NUMBER/COUNT "unhappy" people for each category for each location-department
+    :param source_df: dataframe of results of interest
+    :param categories: list of all categories of interest
+    :param questions: list of all questions as labelled in the survey dataframe
+    :param statbyCat_dict: dictionary with (keys = question number) and (values = associated categories)
+    :return: df with count of people with low scores for each category for each location-department
+    '''
+    # create list of unique locations-departments
+    depts = list(source_df["Location - Department"].unique())
+
+    # create new DF to populate
+    dep_catunhappyQ = pd.DataFrame(columns=categories,
+                                   index=depts)  # dataframe with 9 categories, across all departments for said location
+
+    dep_pos = 0  # keeps track of where we are in new dataframe location-department
+    person_row = source_df.index.values  # gives all row label for all rows associated with dataframe
+    # dep_allpplcount = []  # list to keep track of how many people are in each department
+    for dept in depts:  # evaluate each location-department separately
+        scorelist = [0] * 9  # keeps track of number of people with low scores per category
+        for row in person_row:  # for each row aka person
+            catset = set()  # set to keep track of all unique low score categories associated with person
+            rowdept = source_df.loc[row, "Location - Department"]  # gets location-department for said person
+            if rowdept == dept:  # evaluate if person is in said location-department
+                qnum = 0
+                for q in questions:
+                    qnum += 1  # increment the question number count by 1 to get to the correct question number
+                    qscore = source_df.loc[row, q]  # get score for said question
+                    qcat = statbyCat_dict[qnum]  # get categories associated with said question
+                    if qscore > 0:  # scores of ZERO means no entry was made, and data point ignored
+                        if qscore < 4:  # want only low score counts
+                            for cat in categories:  # evaluate for each category
+                                if cat in qcat:
+                                    catset.add(cat)  # updates catset with cat
+
+            # add person count for every category associated with person
+            cat_pos = 0
+            for cat in categories:
+                if cat in catset:
+                    scorelist[cat_pos] += 1
+                cat_pos += 1
+
+        dep_catunhappyQ.iloc[dep_pos] = scorelist  # add category ppl count to said location/department
+        dep_pos += 1
+
+    dep_catunhappyQ.insert(0, 'Location - Department', depts)  # add new column with department names
+    return dep_catunhappyQ
+
+
+def getDepCat_allCount_ppl(source_df, categories, questions, statbyCat_dict):
+    '''
+    get NUMBER/COUNT all people for each category for each location-department
+    :param source_df: dataframe of results of interest
+    :param categories: list of all categories of interest
+    :param questions: list of all questions as labelled in the survey dataframe
+    :param statbyCat_dict: dictionary with (keys = question number) and (values = associated categories)
+    :return: df with count of people with low scores for each category for each location-department
+    '''
+    # create list of unique locations-departments
+    depts = list(source_df["Location - Department"].unique())
+
+    # create new DF to populate
+    dep_catAllQ = pd.DataFrame(columns=categories,
+                               index=depts)  # dataframe with 9 categories, across all departments for said location
+
+    dep_pos = 0  # keeps track of where we are in new dataframe location-department
+    person_row = source_df.index.values  # gives all row label for all rows associated with dataframe
+    # dep_allpplcount = []  # list to keep track of how many people are in each department
+    for dept in depts:  # evaluate each location-department separately
+        scorelist = [0] * 9  # keeps track of number of people with low scores per category
+        for row in person_row:  # for each row aka person
+            catset = set()  # set to keep track of all unique low score categories associated with person
+            rowdept = source_df.loc[row, "Location - Department"]  # gets location-department for said person
+            if rowdept == dept:  # evaluate if person is in said location-department
+                qnum = 0
+                for q in questions:
+                    qnum += 1  # increment the question number count by 1 to get to the correct question number
+                    qscore = source_df.loc[row, q]  # get score for said question
+                    qcat = statbyCat_dict[qnum]  # get categories associated with said question
+                    if qscore > 0:  # scores of ZERO means no entry was made, and data point ignored
+                        for cat in categories:  # evaluate for each category
+                            if cat in qcat:
+                                catset.add(cat)  # updates catset with cat
+
+            # add person count for every category associated with person
+            cat_pos = 0
+            for cat in categories:
+                if cat in catset:
+                    scorelist[cat_pos] += 1
+                cat_pos += 1
+
+        dep_catAllQ.iloc[dep_pos] = scorelist  # add category ppl count to said location/department
+        dep_pos += 1
+
+    dep_catAllQ.insert(0, 'Location - Department', depts)  # add new column with department names
+    return dep_catAllQ
+
+
+def restructureDFforRecs(dataframe, categories, valueName):
     '''
     add necessary new columns to and restructure low score count DF
     :param dataframe: dataframe with low score counts by "Location - Department"
     :param categories: list of categories of interest (columns in dataframe)
+    :param valueName: name to be assigned to 'values' column as string
     :return: dataframe with Location-Department-Category recommendations ranked by low score count
     '''
 
@@ -221,46 +279,86 @@ def cleanCountDFforRecs(dataframe, categories):
 
     # reshape dataframe
     dataframe = pd.melt(dataframe,
-                                   id_vars=["Location - Department", "Location", "Department"],
-                                   value_vars=categories,
-                                   var_name="Category",
-                                   value_name='Scores with Improvement Potential')
+                        id_vars=["Location - Department", "Location", "Department"],
+                        value_vars=categories,
+                        var_name="Category",
+                        value_name=valueName)
 
-    # sort Descending for low scores
-    sorted_dataframe = dataframe.sort_values(by=['Scores with Improvement Potential'], ascending=False)
+    # sort Location-Department-Category
+    sorted_dataframe = dataframe.sort_values(by=['Location', 'Department', 'Category'])
 
     # remove location - departments with zero unhappy scores
-    sorted_dataframe = sorted_dataframe[sorted_dataframe['Scores with Improvement Potential'] != 0]
+    sorted_dataframe = sorted_dataframe[sorted_dataframe[valueName] != 0]
 
     return sorted_dataframe
 
 
-#@st.cache
-def makerecs(dataframe):
+def top3cat(dataframe, refcolumn):
     '''
-    make dataframe of recommendations (3 cat per dep, 3 dep per loc)
-    :param dataframe: sorted low count DF
-    :return: subset of dataframe with recommendations only
+    make dataframe of top 3 cats per refcolumn
+    :param dataframe: DF with low counts per Location-Departemnt-Category
+    :param refcolumn: column for which you want the top 3 categories for
+    :return: subset of dataframe with top3cat recommendations only for refcolumn
     '''
+
+    # sort Descending for "LowS*PAffected"
+    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
+
+    # only want top 3 of each category for a given Location-Department
+    top3cat = sortedScores.groupby("Location - Department").head(3)
+
+    # only want top 3 rows of each reference group
+    top3cat_1 = top3cat.groupby(refcolumn).head(3)
+
+    # sort by 'Location' and "LowS*PAffected"
+    top3cat_2 = top3cat_1.sort_values(by=["Location", "LowS*PAffected"],
+                                      ascending=[True, False])
+
+    return top3cat_2
+
+
+def catRank_loc(dataframe, refcolumn):
+    '''
+     make dataframe of top 3 cats per refcolumn
+    :param dataframe: DF with low counts per Location-Category
+    :param refcolumn: column for which you want the top 3 categories for
+    :return: subset of dataframe with top3cat recommendations only for refcolumn
+    '''
+
+    # sort Descending for "LowS*PAffected"
+    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
 
     # only want top 3 rows of each group
-    # THEREFORE
-    # only want top 3 recommendations for each location-department; aka top 3 categories for each department of a given location
-    # only want top 3 recommendations for each location, aka 1-3 dept
-    top3recs_fordept = dataframe.groupby("Location - Department").head(3)
-    top9recs_forloc = top3recs_fordept.groupby("Location").head(3)
+    top3cat = sortedScores.groupby(refcolumn).head(3)
 
-    # sort by location
-    top9recs_byloc = top9recs_forloc.sort_values(by = ["Location", "Scores with Improvement Potential"],
-                                                 ascending = [True, False])
+    # sort by 'Location' and "LowS*PAffected"
+    top3cat_1 = top3cat.sort_values(by=["Location", "LowS*PAffected"],
+                                    ascending=[True, False])
 
-    # drop the "location - Department" category
-    clean_top9recs = top9recs_byloc.drop(columns = "Location - Department")
-
-    return clean_top9recs
+    return top3cat_1
 
 
-#@st.cache
+def catRank_org(dataframe):
+    '''
+    make dataframe of top 3 cats for organization
+    :param dataframe: DF with low counts per Location-Departemnt-Category
+    :param refcolumn: column for which you want the top 3 categories for
+    :return: subset of dataframe with top3cat recommendations only for refcolumn
+    '''
+
+    # sort Descending for low "LowS*PAffected"
+    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
+
+    return sortedScores
+
+
+def cleanRecs(recs_df):
+    # drop the "location - Department" and "LowS*PAffected" columns
+    recs_clean = recs_df.drop(columns=["Location - Department", "LowS*PAffected"])
+
+    return recs_clean
+
+
 def locRec_dict(dataDF, locColName):
     '''
     function to turn recommendation dataframe into dictionary by location;
@@ -278,14 +376,41 @@ def locRec_dict(dataDF, locColName):
         for row in rowIndex:
             rowloc = dataDF.loc[row, "Location"]
             if rowloc == loc:
-                rec = list(dataDF.loc[row, "Department":"Scores with Improvement Potential"])
+                rec = list(dataDF.loc[row, "Department":"Percent Department"])
                 recs.append(rec)
-        recsDF = pd.DataFrame(recs, columns=['Department', 'Category', "Scores with Improvement Potential"])
+        recsDF = pd.DataFrame(recs, columns=['Department', 'Category', "Scores with Improvement Potential",
+                                             'People Affected', 'Percent Department'])
         temp_dict[loc] = recsDF
 
     return temp_dict
 
-#@st.cache
+
+def locRec_cat_dict(dataDF, locColName):
+    '''
+    function to turn recommendation dataframe into dictionary by location;
+    :param dataDF: dataframe of recommendations
+    :param locColName: column name that will be reference of dictionary key
+    :return:
+    '''
+    temp_dict = {}
+    locList = dataDF[locColName].unique()  # list of all locations
+
+    rowIndex = dataDF.index.values  # gives all row label(index) for all rows associated with dataframe
+
+    for loc in locList:
+        recs = []  # list of recommendations for location
+        for row in rowIndex:
+            rowloc = dataDF.loc[row, "Location"]
+            if rowloc == loc:
+                rec = list(dataDF.loc[row, "Category":"Percent Location"])
+                recs.append(rec)
+        recsDF = pd.DataFrame(recs, columns=['Category', "Scores with Improvement Potential",
+                                             'People Affected', 'Percent Location'])
+        temp_dict[loc] = recsDF
+
+    return temp_dict
+
+
 def qResponseDF(results):
     ''''
     create dataframe with all question responses in one column
@@ -321,7 +446,7 @@ def qResponseDF(results):
 
     return allResponse_melt
 
-#@st.cache
+
 def getLowResponseQ(sourceDF):
     '''
     subset dataframe with all Q responses to only include low scores
@@ -335,7 +460,6 @@ def getLowResponseQ(sourceDF):
     return low_allResponse_melt
 
 
-#@st.cache
 def getHigh_lowScoreCount_locdep(series):
     '''
     get array with the Location-Department with the highest count of low scores
@@ -353,7 +477,6 @@ def getHigh_lowScoreCount_locdep(series):
     return highcount_locdep_names
 
 
-#@st.cache
 def getCountResults_locdep(sourceDF, locdeplist):
     '''
     create new DF with only location-department of interest
@@ -365,27 +488,6 @@ def getCountResults_locdep(sourceDF, locdeplist):
     subset = sourceDF.loc[sourceDF["Location - Department"].isin(locdeplist)]
 
     return subset
-
-#@st.cache
-def createNaNQDict(sourceDF, categories):
-    '''
-    fuction to find questions associated with no categories
-    :param sourceDF: original 'statKey' dataframe
-    :param categories: list of all categories
-    :return: dictionary with key="nan" and value=(list of all Q's associated with no categories)
-    '''
-    tempDict = {}
-    tempList = [] # empty list to be dictionary value
-    qNum = 1  # keep track of qNum
-    for i in range(len(sourceDF)):  # define length of dataframe iterating over
-        row = sourceDF.iloc[i]  # identify dataframe row of interest
-        value = row[4]  # set value to be first category
-        if value not in categories:
-            tempList.append(qNum)
-        qNum += 1
-
-    tempDict["nan"] = tempList
-    return tempDict
 
 
 #@st.cache
@@ -477,7 +579,6 @@ def download_button(object_to_download, download_filename, button_text, pickle_i
 
 # define relative file path
 filepath1 = "statement_key.csv"  # file for statkey only
-#filepath2 = "data/results_colnames.csv"  # file for colnames only
 
 
 # Web App Intro text
@@ -491,19 +592,22 @@ st.set_option('deprecation.showfileUploaderEncoding', False)
 
 
 # read in files
-statKey = readinFile(filepath1, "csv")
+statKey = pd.read_csv(filepath1)
 
-# create a list of question columns as they appear in the data
+# list of question columns as they appear in the data
 questions = statKey["Question"].tolist()
 
-# create list of categories
+# list of categories
 categories = getCategories(statKey)
 
-# create dictionary with (key = question number) and (value = categories associated with question)
+# dictionary with (key = question number) and (value = categories associated with question)
 statbyCat_dict = createStatDict(statKey, categories)
 
-# create new dataframe for cataloguing question numbers by their category
-statbyCat = createNewCatQDF(statKey, categories)
+# new dataframe for cataloguing question numbers by their category
+statbyCat_df = createNewCatQDF(statKey, categories)
+
+# dictionary with (key = category) and (values = questions-associated)
+catbyQ_dict = createCatbyQDict(statbyCat_df, categories)
 
 
 #################################
@@ -517,106 +621,275 @@ uploaded_file = st.file_uploader("Choose your Excel data file", type="xlsx")
 if uploaded_file is not None:
     # read in and set uploaded file to results
     #results = readinFile(uploaded_file, "dataframe", "xlsx")
-    results = readinresults(uploaded_file)
+    results = pd.read_excel(uploaded_file)
     st.dataframe(results)
-
 
     # clean results DF for processing
     results_new = setupResults(results)
 
-    # get DF with count of low scores for each category for every Location-Department
+    # DF with count of low scores for each category for every Location-Department
     results_unhappyCount = getDepCat_unhappyCount(results_new, categories, questions, statbyCat_dict)
 
-    # sort recommendations by Location-Department-Category
-    sorted_lowCounts = cleanCountDFforRecs(copy(results_unhappyCount), categories)
+    # low score count by Location-Department-Category
+    sorted_lowCounts = restructureDFforRecs(copy(results_unhappyCount), categories, "Scores with Improvement Potential")
 
-    # make recommendations based on overall low score count across Location-Department-Categories
-    recommendations = makerecs(sorted_lowCounts)
+    # DF with count of ppl with low score for each category for every Location-Department
+    results_unhappyCount_ppl = getDepCat_unhappyCount_ppl(results_new, categories, questions, statbyCat_dict)
 
-    # create dictionary of recommendations by location
-    rec_dict = locRec_dict(recommendations, "Location")
+    # low score ppl count by Location-Department-Category
+    sorted_lowCounts_ppl = restructureDFforRecs(copy(results_unhappyCount_ppl), categories, "People Affected")
+
+    # DF with count of ALL ppl for each category for every Location-Department
+    results_allCount_ppl = getDepCat_allCount_ppl(results_new, categories, questions, statbyCat_dict)
+
+    # all ppl count by Location-Department-Category
+    sorted_allCounts_ppl = restructureDFforRecs(copy(results_allCount_ppl), categories, "People Responding")
+
+    # get only count of ppl for Location-Department-Category with low scores
+    sorted_allCounts_ppl_sub = sorted_allCounts_ppl.loc[sorted_lowCounts_ppl.index.values]
+
+    # check that row items match up
+    # all(sorted_allCounts_ppl_sub["Location - Department"] == sorted_lowCounts_ppl["Location - Department"])  # True
+    # all(sorted_allCounts_ppl_sub["Category"] == sorted_lowCounts_ppl["Category"])  # True
+
+    # new column for 'sorted_lowCounts_ppl' with percent people with low scores for Department
+    sorted_lowCounts_ppl["Percent Department"] = (
+            sorted_lowCounts_ppl["People Affected"] / sorted_allCounts_ppl_sub["People Responding"] * 100).astype(
+        int)
+
+    # check that indexes match between DF
+    # all(sorted_lowCounts.index.values == sorted_lowCounts_ppl.index.values)  # True
+
+    # add affected people count & percent department to sorted_lowCounts
+    sorted_lowCounts["People Affected"] = sorted_lowCounts_ppl["People Affected"]
+    sorted_lowCounts["Percent Department"] = sorted_lowCounts_ppl["Percent Department"]
+
+    # add new unitless multiplication factor of LowScores * PeopleAffected
+    sorted_lowCounts["LowS*PAffected"] = sorted_lowCounts["Scores with Improvement Potential"] * sorted_lowCounts[
+        "People Affected"]
+
+    ############################################################
+    ############# Recommendations for ANY department with improvement potential
+    ############################################################
+
+    # make recommendations for ALL departments with ANY category for improvement
+    allDep_rec = top3cat(sorted_lowCounts, "Location - Department")
+
+    # clean and write recs to CSV
+    allDep_rec1 = cleanRecs(allDep_rec)
+
+    # dictionary of recommendations by location
+    allDep_rec1_dict = locRec_dict(allDep_rec1, "Location")
+
+    # make only 3 recommendations total per location with improvement potential
+    loc3_rec = top3cat(sorted_lowCounts, "Location")
+
+    # clean and write recs to CSV
+    loc3_rec1 = cleanRecs(loc3_rec)
+
+    # dictionary of recommendations by location
+    loc3_rec1_dict = locRec_dict(loc3_rec1, "Location")
+
+    ############################################################
+    ############# look into only subset of recommendations
+    ############################################################
+
+    ####### Based on Location-Departments with MOST low scores
+
+    # dataframe of all question responses in one column
+    allResponse_melt = qResponseDF(results_new)
+
+    # dataframe of Qresponses with low score responses only
+    low_allResponse_melt = getLowResponseQ(allResponse_melt)
+
+    # series with all low scores by Location/Department
+    lowscore_locdep = low_allResponse_melt.groupby("Location - Department")["Value"].count()
+
+    # array with Location/Department with low score count greater than 3rd quantile
+    highcount_locdep_array = getHigh_lowScoreCount_locdep(lowscore_locdep)
+
+    # dataframe of low score counts ONLY for Location-Deparments with highest counts
+    highScore_locdep_sorted_lowCounts = getCountResults_locdep(sorted_lowCounts, highcount_locdep_array)
+
+    # make recommendations for WORSE departments
+    worseDep_rec = top3cat(highScore_locdep_sorted_lowCounts, "Location - Department")
+
+    # clean and write recs to CSV
+    worseDep_rec1 = cleanRecs(worseDep_rec)
+
+    # dictionary of recommendations by location
+    worseDep_rec1_dict = locRec_dict(worseDep_rec1, "Location")
+
+    ############################################################
+    ############# Category Recommendations per Location
+    ############################################################
+
+    # Scores with Improvement Potential across each category for every location
+    loc_cat_score = sorted_lowCounts.groupby(["Location", "Category"])[
+        "Scores with Improvement Potential"].sum().reset_index(name="Scores with Improvement Potential")
+
+    # People Affected across each category for every location
+    loc_cat_affected = sorted_lowCounts.groupby(["Location", "Category"])["People Affected"].sum().reset_index(
+        name="People Affected")
+
+    # check that row items match up
+    # all(loc_cat_score["Location"] == loc_cat_affected["Location"])  # True
+    # all(loc_cat_score["Category"] == loc_cat_affected["Category"])  # True
+
+    # Total People across each category for every location
+    loc_cat_responding = sorted_allCounts_ppl_sub.groupby(["Location", "Category"])[
+        "People Responding"].sum().reset_index(name="People Responding")
+
+    # check that row items match up
+    # all(loc_cat_responding["Location"] == loc_cat_affected["Location"])  # True
+    # all(loc_cat_responding["Category"] == loc_cat_affected["Category"])  # True
+
+    # new column for 'loc_cat_affected' with percent people with low scores each location-category
+    loc_cat_affected["Percent Location"] = (
+            loc_cat_affected["People Affected"] / loc_cat_responding["People Responding"] * 100).astype(int)
+
+    # add 'People Affected' and 'Percent Location' to 'loc_cat_score'
+    loc_cat_score["People Affected"] = loc_cat_affected["People Affected"]
+    loc_cat_score["Percent Location"] = loc_cat_affected["Percent Location"]
+
+    # add new unitless multiplication factor of LowScores * PeopleAffected
+    loc_cat_score["LowS*PAffected"] = loc_cat_score["Scores with Improvement Potential"] * loc_cat_score[
+        "People Affected"]
+
+    # make 3 category recommendations per location
+    loc_cat_rec = catRank_loc(loc_cat_score, "Location")
+
+    # clean loc_cat_rec of unitless column "LowS*PAffected"
+    loc_cat_rec = loc_cat_rec.drop(columns="LowS*PAffected")
+
+    # dictionary of recommendations by location
+    loc_cat_rec_dict = locRec_cat_dict(loc_cat_rec, "Location")
+
+    ############################################################
+    ############# Category Recommendations for Organization
+    ############################################################
+
+    # Scores with Improvement Potential across each category for organization
+    org_cat_score = sorted_lowCounts.groupby("Category")["Scores with Improvement Potential"].sum().reset_index(
+        name="Scores with Improvement Potential")
+
+    # People Affected across each category for organization
+    org_cat_affected = sorted_lowCounts.groupby("Category")["People Affected"].sum().reset_index(name="People Affected")
+
+    # check that row items match up
+    # all(org_cat_score["Category"] == org_cat_affected["Category"])  # True
+
+    # Total People across each category for organization
+    org_cat_responding = sorted_allCounts_ppl_sub.groupby("Category")["People Responding"].sum().reset_index(
+        name="People Responding")
+
+    # check that row items match up
+    # all(org_cat_responding["Category"] == org_cat_affected["Category"])  # True
+
+    # new column for 'org_cat_affected' with percent people with low scores each location-category
+    org_cat_affected["Percent Organization"] = (
+            org_cat_affected["People Affected"] / org_cat_responding["People Responding"] * 100).astype(int)
+
+    # add 'People Affected' and 'Percent Location' to 'org_cat_score'
+    org_cat_score["People Affected"] = org_cat_affected["People Affected"]
+    org_cat_score["Percent Organization"] = org_cat_affected["Percent Organization"]
+
+    # add new unitless multiplication factor of LowScores * PeopleAffected
+    org_cat_score["LowS*PAffected"] = org_cat_score["Scores with Improvement Potential"] * org_cat_score[
+        "People Affected"]
+
+    # show category details for organization
+    org_cat_detail = catRank_org(org_cat_score)
+
+    # clean org_cat_detail of unitless column "LowS*PAffected"
+    org_cat_detail = org_cat_detail.drop(columns="LowS*PAffected")
+
+    # category recommendations for organization
+    org_cat_rec = org_cat_detail.head(3)
+
+
+
+#####################################################
+##### Interactive Recommendations - Organization Categories
+#####################################################
+
+# option to show recommendation
+if st.checkbox('Recommendation: Organization Categories'):
 
     # create download button
-    rec_download_button = download_button(recommendations, "Recommendations.csv", "Download All Recommendations")
-    st.markdown(rec_download_button, unsafe_allow_html=True)
+    rec_download_button1 = download_button(org_cat_rec, "organization_top3categories.csv", "Download Organization Categories")
+    st.markdown(rec_download_button1, unsafe_allow_html=True)
+
+    # write recs
+    st.dataframe(org_cat_rec)
+
 
 
 #####################################################
-##### Interactive Recommendations
+##### Interactive Recommendations - Location Categories
 #####################################################
 
+# option to show recommendation
+if st.checkbox('Recommendation: Location Categories'):
 
-# option to show all areas of recommendation by location
-if st.checkbox('Show All Recommendations for Improvement:'):
+    # create download button
+    rec_download_button2 = download_button(loc_cat_rec, "all_location_top3categories.csv", "Download Location Categories")
+    st.markdown(rec_download_button2, unsafe_allow_html=True)
 
+    # option to show recommendation by location
     location_selected = st.selectbox(
-    'Which Location do you want to look at?',
-    list(rec_dict.keys()),
-    key = 1)
+        'Which Location do you want to look at?',
+        list(loc_cat_rec_dict.keys()),
+        key=2)
 
-     #recsDF['Location/Department'])
-    ###### test with dictionary
-    st.write(rec_dict[location_selected])
+    # write recommendation for location
+    st.write(loc_cat_rec_dict[location_selected])
+
 
 #####################################################
-###### option to show areas of recommendation for loc-dep with highest count low scores
+##### Interactive Recommendations - Location - 3 Recommendations
 #####################################################
 
-if st.checkbox('Calculate Recommendations for Worse Performing Departments:'):
+# option to show recommendation
+if st.checkbox('Recommendation: Location Dept Categories'):
+
+    # create download button
+    rec_download_button3 = download_button(loc3_rec1, "all_location_top3recommendations.csv", "Download Location Dept Categories")
+    st.markdown(rec_download_button3, unsafe_allow_html=True)
+
+    # option to show recommendation by location
+    location_selected = st.selectbox(
+        'Which Location do you want to look at?',
+        list(loc3_rec1_dict.keys()),
+        key=3)
+
+    # write recommendation for location
+    st.write(loc3_rec1_dict[location_selected])
+
+
+#####################################################
+##### Interactive Recommendations - Worse Departments - 3 Recommendations
+#####################################################
+
+# option to show recommendation
+if st.checkbox('Recommendation: Worse Dept Categories'):
 
     # Description
     st.write('These departments have the highest number of low scores (top 25%) across the organization.')
 
-    # get dataframe of all question responses in one column
-    allResponse_melt = qResponseDF(results_new)
-
-    # get dictionary of all questions associated with no categories ("nan"
-    nanDict = createNaNQDict(statKey, categories)
-
-    # subset allResponse_melt to only include questions associated with categories
-    allResponse_melt_noNan = allResponse_melt[~allResponse_melt["Question"].isin(nanDict["nan"])]
-
-    # get dataframe of Qresponses with low score responses only
-    low_allResponse_melt = getLowResponseQ(allResponse_melt_noNan)
-
-    # get series with all low scores by Location/Department
-    lowscore_locdep = low_allResponse_melt.groupby("Location - Department")["Value"].count()
-
-    # get array with Location/Department with low score count greater than 3rd quantile
-    highcount_locdep_array = getHigh_lowScoreCount_locdep(lowscore_locdep)
-
-    # get dataframe of low score counts ONLY for Location-Deparments with highest counts
-    highScore_locdep_sorted_lowCounts = getCountResults_locdep(sorted_lowCounts, highcount_locdep_array)
-
-    # make recommendations based on overall low score count ONLY for Location-Department with highest lowscore counts
-    lowscore_locdep_recs = makerecs(highScore_locdep_sorted_lowCounts)
-
-    # export recommendations to CSV file
-    #lowscore_locdep_recs.to_csv(r'data/recs_lowscoreDepartments.csv', index=False)
-
-    # create dictionary of recommendations by location
-    lowscore_locdep_rec_dict = locRec_dict(lowscore_locdep_recs, "Location")
-
     # create download button
-    rec_lowscore_download_button = download_button(lowscore_locdep_recs, "recs_lowscoreDepartments.csv", "Download Subset Recommendations")
-    st.markdown(rec_lowscore_download_button, unsafe_allow_html=True)
+    rec_download_button4 = download_button(worseDep_rec1, "worse_department_top3categories.csv", "Download Worse Dept Categories")
+    st.markdown(rec_download_button4, unsafe_allow_html=True)
 
-
-#####################################################
-##### Interactive Recommendations
-#####################################################
-
-# option to show all areas of recommendation by location
-if st.checkbox('Show Recommendations for Worse Performing Departments:'):
-
+    # option to show recommendation by location
     location_selected = st.selectbox(
-    'Which Location do you want to look at?',
-    list(lowscore_locdep_rec_dict.keys()),
-    key = 2)
+        'Which Location do you want to look at?',
+        list(worseDep_rec1_dict.keys()),
+        key=4)
 
-     #recsDF['Location/Department'])
-    ###### test with dictionary
-    st.write(lowscore_locdep_rec_dict[location_selected])
+    # write recommendation for location
+    st.write(worseDep_rec1_dict[location_selected])
+
 
 
 
