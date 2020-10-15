@@ -301,8 +301,8 @@ def top3cat(dataframe, refcolumn):
     :return: subset of dataframe with top3cat recommendations only for refcolumn
     '''
 
-    # sort Descending for "LowS*PAffected"
-    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
+    # sort Descending for low scores
+    sortedScores = dataframe.sort_values(by=['Scores with Improvement Potential'], ascending=False)
 
     # only want top 3 of each category for a given Location-Department
     top3cat = sortedScores.groupby("Location - Department").head(3)
@@ -310,8 +310,8 @@ def top3cat(dataframe, refcolumn):
     # only want top 3 rows of each reference group
     top3cat_1 = top3cat.groupby(refcolumn).head(3)
 
-    # sort by 'Location' and "LowS*PAffected"
-    top3cat_2 = top3cat_1.sort_values(by=["Location", "LowS*PAffected"],
+    # sort by 'Location' and "Scores with Improvement Potential"
+    top3cat_2 = top3cat_1.sort_values(by=["Location", "Scores with Improvement Potential"],
                                       ascending=[True, False])
 
     return top3cat_2
@@ -325,14 +325,14 @@ def catRank_loc(dataframe, refcolumn):
     :return: subset of dataframe with top3cat recommendations only for refcolumn
     '''
 
-    # sort Descending for "LowS*PAffected"
-    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
+    # sort Descending for low scores
+    sortedScores = dataframe.sort_values(by=['Scores with Improvement Potential'], ascending=False)
 
     # only want top 3 rows of each group
     top3cat = sortedScores.groupby(refcolumn).head(3)
 
-    # sort by 'Location' and "LowS*PAffected"
-    top3cat_1 = top3cat.sort_values(by=["Location", "LowS*PAffected"],
+    # sort by 'Location' and "Scores with Improvement Potential"
+    top3cat_1 = top3cat.sort_values(by=["Location", "Scores with Improvement Potential"],
                                     ascending=[True, False])
 
     return top3cat_1
@@ -346,15 +346,15 @@ def catRank_org(dataframe):
     :return: subset of dataframe with top3cat recommendations only for refcolumn
     '''
 
-    # sort Descending for low "LowS*PAffected"
-    sortedScores = dataframe.sort_values(by=["LowS*PAffected"], ascending=False)
+    # sort Descending for low scores
+    sortedScores = dataframe.sort_values(by=['Scores with Improvement Potential'], ascending=False)
 
     return sortedScores
 
 
 def cleanRecs(recs_df):
-    # drop the "location - Department" and "LowS*PAffected" columns
-    recs_clean = recs_df.drop(columns=["Location - Department", "LowS*PAffected"])
+    # drop the "location - Department" category
+    recs_clean = recs_df.drop(columns="Location - Department")
 
     return recs_clean
 
@@ -664,9 +664,6 @@ if uploaded_file is not None:
     sorted_lowCounts["People Affected"] = sorted_lowCounts_ppl["People Affected"]
     sorted_lowCounts["Percent Department"] = sorted_lowCounts_ppl["Percent Department"]
 
-    # add new unitless multiplication factor of LowScores * PeopleAffected
-    sorted_lowCounts["LowS*PAffected"] = sorted_lowCounts["Scores with Improvement Potential"] * sorted_lowCounts[
-        "People Affected"]
 
     ############################################################
     ############# Recommendations for ANY department with improvement potential
@@ -752,15 +749,8 @@ if uploaded_file is not None:
     loc_cat_score["People Affected"] = loc_cat_affected["People Affected"]
     loc_cat_score["Percent Location"] = loc_cat_affected["Percent Location"]
 
-    # add new unitless multiplication factor of LowScores * PeopleAffected
-    loc_cat_score["LowS*PAffected"] = loc_cat_score["Scores with Improvement Potential"] * loc_cat_score[
-        "People Affected"]
-
     # make 3 category recommendations per location
     loc_cat_rec = catRank_loc(loc_cat_score, "Location")
-
-    # clean loc_cat_rec of unitless column "LowS*PAffected"
-    loc_cat_rec = loc_cat_rec.drop(columns="LowS*PAffected")
 
     # dictionary of recommendations by location
     loc_cat_rec_dict = locRec_cat_dict(loc_cat_rec, "Location")
@@ -794,15 +784,8 @@ if uploaded_file is not None:
     org_cat_score["People Affected"] = org_cat_affected["People Affected"]
     org_cat_score["Percent Organization"] = org_cat_affected["Percent Organization"]
 
-    # add new unitless multiplication factor of LowScores * PeopleAffected
-    org_cat_score["LowS*PAffected"] = org_cat_score["Scores with Improvement Potential"] * org_cat_score[
-        "People Affected"]
-
     # show category details for organization
     org_cat_detail = catRank_org(org_cat_score)
-
-    # clean org_cat_detail of unitless column "LowS*PAffected"
-    org_cat_detail = org_cat_detail.drop(columns="LowS*PAffected")
 
     # category recommendations for organization
     org_cat_rec = org_cat_detail.head(3)
