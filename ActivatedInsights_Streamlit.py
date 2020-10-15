@@ -792,86 +792,86 @@ if uploaded_file is not None:
 
 
 
-#####################################################
-##### Interactive Recommendations - Organization Categories
-#####################################################
+    #####################################################
+    ##### Interactive Recommendations - Organization Categories
+    #####################################################
 
-# option to show recommendation
-if st.checkbox('Recommendation: Organization Categories'):
+    # option to show recommendation
+    if st.checkbox('Recommendation: Organization Categories'):
 
-    # create download button
-    rec_download_button1 = download_button(org_cat_rec, "organization_top3categories.csv", "Download Organization Categories")
-    st.markdown(rec_download_button1, unsafe_allow_html=True)
+        # create download button
+        rec_download_button1 = download_button(org_cat_rec, "organization_top3categories.csv", "Download Organization Categories")
+        st.markdown(rec_download_button1, unsafe_allow_html=True)
 
-    # write recs
-    st.dataframe(org_cat_rec)
-
-
-
-#####################################################
-##### Interactive Recommendations - Location Categories
-#####################################################
-
-# option to show recommendation
-if st.checkbox('Recommendation: Location Categories'):
-
-    # create download button
-    rec_download_button2 = download_button(loc_cat_rec, "all_location_top3categories.csv", "Download Location Categories")
-    st.markdown(rec_download_button2, unsafe_allow_html=True)
-
-    # option to show recommendation by location
-    location_selected = st.selectbox(
-        'Which Location do you want to look at?',
-        list(loc_cat_rec_dict.keys()),
-        key=2)
-
-    # write recommendation for location
-    st.write(loc_cat_rec_dict[location_selected])
+        # write recs
+        st.dataframe(org_cat_rec)
 
 
-#####################################################
-##### Interactive Recommendations - Location - 3 Recommendations
-#####################################################
 
-# option to show recommendation
-if st.checkbox('Recommendation: Location Dept Categories'):
+    #####################################################
+    ##### Interactive Recommendations - Location Categories
+    #####################################################
 
-    # create download button
-    rec_download_button3 = download_button(loc3_rec1, "all_location_top3recommendations.csv", "Download Location Dept Categories")
-    st.markdown(rec_download_button3, unsafe_allow_html=True)
+    # option to show recommendation
+    if st.checkbox('Recommendation: Location Categories'):
 
-    # option to show recommendation by location
-    location_selected = st.selectbox(
-        'Which Location do you want to look at?',
-        list(loc3_rec1_dict.keys()),
-        key=3)
+        # create download button
+        rec_download_button2 = download_button(loc_cat_rec, "all_location_top3categories.csv", "Download Location Categories")
+        st.markdown(rec_download_button2, unsafe_allow_html=True)
 
-    # write recommendation for location
-    st.write(loc3_rec1_dict[location_selected])
+        # option to show recommendation by location
+        location_selected = st.selectbox(
+            'Which Location do you want to look at?',
+            list(loc_cat_rec_dict.keys()),
+            key=2)
+
+        # write recommendation for location
+        st.write(loc_cat_rec_dict[location_selected])
 
 
-#####################################################
-##### Interactive Recommendations - Worse Departments - 3 Recommendations
-#####################################################
+    #####################################################
+    ##### Interactive Recommendations - Location - 3 Recommendations
+    #####################################################
 
-# option to show recommendation
-if st.checkbox('Recommendation: Worse Dept Categories'):
+    # option to show recommendation
+    if st.checkbox('Recommendation: Location Dept Categories'):
 
-    # Description
-    st.write('These departments have the highest number of low scores (top 25%) across the organization.')
+        # create download button
+        rec_download_button3 = download_button(loc3_rec1, "all_location_top3recommendations.csv", "Download Location Dept Categories")
+        st.markdown(rec_download_button3, unsafe_allow_html=True)
 
-    # create download button
-    rec_download_button4 = download_button(worseDep_rec1, "worse_department_top3categories.csv", "Download Worse Dept Categories")
-    st.markdown(rec_download_button4, unsafe_allow_html=True)
+        # option to show recommendation by location
+        location_selected = st.selectbox(
+            'Which Location do you want to look at?',
+            list(loc3_rec1_dict.keys()),
+            key=3)
 
-    # option to show recommendation by location
-    location_selected = st.selectbox(
-        'Which Location do you want to look at?',
-        list(worseDep_rec1_dict.keys()),
-        key=4)
+        # write recommendation for location
+        st.write(loc3_rec1_dict[location_selected])
 
-    # write recommendation for location
-    st.write(worseDep_rec1_dict[location_selected])
+
+    #####################################################
+    ##### Interactive Recommendations - Worse Departments - 3 Recommendations
+    #####################################################
+
+    # option to show recommendation
+    if st.checkbox('Recommendation: Worse Dept Categories'):
+
+        # Description
+        st.write('These departments have the highest number of low scores (top 25%) across the organization.')
+
+        # create download button
+        rec_download_button4 = download_button(worseDep_rec1, "worse_department_top3categories.csv", "Download Worse Dept Categories")
+        st.markdown(rec_download_button4, unsafe_allow_html=True)
+
+        # option to show recommendation by location
+        location_selected = st.selectbox(
+            'Which Location do you want to look at?',
+            list(worseDep_rec1_dict.keys()),
+            key=4)
+
+        # write recommendation for location
+        st.write(worseDep_rec1_dict[location_selected])
 
 
 
