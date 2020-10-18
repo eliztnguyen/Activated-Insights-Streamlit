@@ -717,14 +717,14 @@ highcount_locdep_array = getHigh_lowScoreCount_locdep(lowscore_locdep)
 # dataframe of low score counts ONLY for Location-Deparments with highest counts
 highScore_locdep_sorted_lowCounts = getCountResults_locdep(sorted_lowCounts, highcount_locdep_array)
 
-# make recommendations for WORSE departments
-worseDep_rec = top3cat(highScore_locdep_sorted_lowCounts, "Location - Department")
+# make recommendations for WORST departments
+worstDep_rec = top3cat(highScore_locdep_sorted_lowCounts, "Location - Department")
 
 # clean and write recs to CSV
-worseDep_rec1 = cleanRecs(worseDep_rec)
+worstDep_rec1 = cleanRecs(worstDep_rec)
 
 # dictionary of recommendations by location
-worseDep_rec1_dict = locRec_dict(worseDep_rec1, "Location")
+worstDep_rec1_dict = locRec_dict(worstDep_rec1, "Location")
 
 ############################################################
 ############# Category Recommendations per Location
@@ -860,7 +860,7 @@ if st.checkbox('Recommendation: Location Dept Categories'):
 
 
 #####################################################
-##### Interactive Recommendations - Worse Departments - 3 Recommendations
+##### Interactive Recommendations - Worst Departments - 3 Recommendations
 #####################################################
 
 # option to show recommendation
@@ -870,17 +870,17 @@ if st.checkbox('Recommendation: Worst Dept Categories'):
     st.write('These departments have the highest number of low scores (top 25%) across the organization.')
 
     # create download button
-    rec_download_button4 = download_button(worseDep_rec1, "worse_department_top3categories.csv", "Download Worse Dept Categories")
+    rec_download_button4 = download_button(worstDep_rec1, "worst_department_top3categories.csv", "Download Worst Dept Categories")
     st.markdown(rec_download_button4, unsafe_allow_html=True)
 
     # option to show recommendation by location
     location_selected = st.selectbox(
         'Which Location do you want to look at?',
-        list(worseDep_rec1_dict.keys()),
+        list(worstDep_rec1_dict.keys()),
         key=4)
 
     # write recommendation for location
-    st.write(worseDep_rec1_dict[location_selected])
+    st.write(worstDep_rec1_dict[location_selected])
 
 
 
