@@ -864,7 +864,7 @@ if st.checkbox('Recommendation: Location Dept Categories'):
 #####################################################
 
 # option to show recommendation
-if st.checkbox('Recommendation: Worse Dept Categories'):
+if st.checkbox('Recommendation: Worst Dept Categories'):
 
     # Description
     st.write('These departments have the highest number of low scores (top 25%) across the organization.')
