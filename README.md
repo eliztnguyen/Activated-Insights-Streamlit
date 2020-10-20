@@ -10,11 +10,11 @@ Web App is hosted by Streamlit Share: https://share.streamlit.io/eliztnguyen/act
 Using employee responses from a 60 question likert survey, for a given organization/survey period, identify categories to target for department level interventions, in order to maximize potential improvements in employee workplace satisfaction. Make category recommendations at the Location and Organization level.
 
 ## Repository Content:
-Markup: * ActivatedInsights_Streamlit.py : python script written for Streamlit app deployment
-        * statement_key.csv : csv file required for script functionality; includes list of categories associated with each of the 60 survey questions.
-        * ExampleResultsFiles.xlsx : examlpe excel survey data file with expected formatting and header
-        * packages.txt : text file with packages required for deployment through Streamlit's Linux environment running Debian Buster (slim)
-        * requirements.txt : text file with requirements for deployment for Python 3.7 (Streamlit Python version in 10/2020)
+* ActivatedInsights_Streamlit.py : python script written for Streamlit app deployment
+* statement_key.csv : csv file required for script functionality; includes list of categories associated with each of the 60 survey questions.
+* ExampleResultsFiles.xlsx : examlpe excel survey data file with expected formatting and header
+* packages.txt : text file with packages required for deployment through Streamlit's Linux environment running Debian Buster (slim)
+* requirements.txt : text file with requirements for deployment for Python 3.7 (Streamlit Python version in 10/2020)
 
 
 
